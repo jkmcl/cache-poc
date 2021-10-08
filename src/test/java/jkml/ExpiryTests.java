@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -24,55 +23,55 @@ class ExpiryTests {
 
 	private final Logger log = LoggerFactory.getLogger(getClass());
 
-	private final AtomicInteger getTokenCount = new AtomicInteger(0);
+	private final AtomicInteger generationCount = new AtomicInteger(0);
+
+	private final AtomicInteger getCount = new AtomicInteger(0);
 
 	@Test
-	void testExpireAfterCreate() {
+	void testExpireAfter() {
 		LoadingCache<String, String> tokenCache = Caffeine.newBuilder().expireAfter(new Expiry<String, String>() {
+			private long expireAfterCreateOrUpdate(String token) {
+				Instant exp = Instant.ofEpochSecond(Long.parseLong(token));
+				return Duration.between(Instant.now(), exp).toNanos();
+			}
+
 			public long expireAfterCreate(String key, String token, long currentTime) {
-				log.info("expireAfterCreate called");
-				Instant now = Instant.now();
-				Instant exp = extractExpirationTimeFromToken(token);
-				log.debug("Current time: {}; Expiration time: {}", now, exp);
-				return Duration.between(now, exp).toNanos();
+				log.debug("expireAfterCreate called");
+				return expireAfterCreateOrUpdate(token);
 			}
 
 			public long expireAfterUpdate(String key, String token, long currentTime, long currentDuration) {
-				return currentDuration;
+				log.debug("expireAfterUpdate called");
+				return expireAfterCreateOrUpdate(token);
 			}
 
 			public long expireAfterRead(String key, String token, long currentTime, long currentDuration) {
 				return currentDuration;
 			}
-		}).maximumSize(1).build(key -> generateToken(key));
+		}).build(key -> generateToken(key));
 
-		log.info("Get token from cache 1");
-		tokenCache.get(TOKEN_KEY);
-		log.info("Get token from cache 2");
-		tokenCache.get(TOKEN_KEY);
-		assertEquals(1, getTokenCount.get());
+		getTokenFromCache(tokenCache, TOKEN_KEY);
+		getTokenFromCache(tokenCache, TOKEN_KEY);
+		assertEquals(1, generationCount.get());
 
 		await().pollDelay(Duration.ofSeconds(TOKEN_LIFE_TIME_IN_SEC)).until(() -> true);
 
-		log.info("Get token from cache 3");
-		tokenCache.get(TOKEN_KEY);
-		log.info("Get token from cache 4");
-		tokenCache.get(TOKEN_KEY);
-		assertEquals(2, getTokenCount.get());
+		getTokenFromCache(tokenCache, TOKEN_KEY);
+		getTokenFromCache(tokenCache, TOKEN_KEY);
+		assertEquals(2, generationCount.get());
+	}
+
+	private void getTokenFromCache(LoadingCache<String, String> tokenCache, String key) {
+		int count = getCount.addAndGet(1);
+		log.info("Getting token from cache (count: {})", count);
+		tokenCache.get(key);
 	}
 
 	private String generateToken(String key) {
-		long iat = Instant.now().getEpochSecond();
-		long exp = iat + TOKEN_LIFE_TIME_IN_SEC;
-		String token = Long.toString(iat) + "|" + Long.toString(exp);
-		log.info("Generated token: {}", token);
-		getTokenCount.addAndGet(1);
-		return token;
-	}
-
-	private static Instant extractExpirationTimeFromToken(String token) {
-		String[] claims = token.split(Pattern.quote("|"));
-		return Instant.ofEpochSecond(Long.parseLong(claims[1]));
+		int count = generationCount.addAndGet(1);
+		Instant exp = Instant.now().plusSeconds(TOKEN_LIFE_TIME_IN_SEC);
+		log.debug("Generating new token (count: {}); expiration time: {}", count, exp);
+		return Long.toString(exp.getEpochSecond());
 	}
 
 }
