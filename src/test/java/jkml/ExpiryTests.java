@@ -21,7 +21,7 @@ class ExpiryTests {
 
 	private static final int TOKEN_LIFE_TIME_IN_SEC = 5;
 
-	private final Logger log = LoggerFactory.getLogger(getClass());
+	private final Logger logger = LoggerFactory.getLogger(ExpiryTests.class);
 
 	private final AtomicInteger generationCount = new AtomicInteger(0);
 
@@ -35,20 +35,23 @@ class ExpiryTests {
 				return Duration.between(Instant.now(), exp).toNanos();
 			}
 
+			@Override
 			public long expireAfterCreate(String key, String token, long currentTime) {
-				log.debug("expireAfterCreate called");
+				logger.debug("expireAfterCreate called");
 				return expireAfterCreateOrUpdate(token);
 			}
 
+			@Override
 			public long expireAfterUpdate(String key, String token, long currentTime, long currentDuration) {
-				log.debug("expireAfterUpdate called");
+				logger.debug("expireAfterUpdate called");
 				return expireAfterCreateOrUpdate(token);
 			}
 
+			@Override
 			public long expireAfterRead(String key, String token, long currentTime, long currentDuration) {
 				return currentDuration;
 			}
-		}).build(key -> generateToken(key));
+		}).build(this::generateToken);
 
 		getTokenFromCache(tokenCache, TOKEN_KEY);
 		getTokenFromCache(tokenCache, TOKEN_KEY);
@@ -63,14 +66,14 @@ class ExpiryTests {
 
 	private void getTokenFromCache(LoadingCache<String, String> tokenCache, String key) {
 		int count = getCount.addAndGet(1);
-		log.info("Getting token from cache (count: {})", count);
+		logger.info("Getting token from cache (count: {})", count);
 		tokenCache.get(key);
 	}
 
 	private String generateToken(String key) {
 		int count = generationCount.addAndGet(1);
 		Instant exp = Instant.now().plusSeconds(TOKEN_LIFE_TIME_IN_SEC);
-		log.debug("Generating new token (count: {}); expiration time: {}", count, exp);
+		logger.debug("Generating new token (count: {}); expiration time: {}", count, exp);
 		return Long.toString(exp.getEpochSecond());
 	}
 

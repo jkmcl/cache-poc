@@ -2,11 +2,8 @@ package jkml;
 
 import java.time.Duration;
 
-import javax.annotation.PostConstruct;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.cache.CacheManagerCustomizer;
 import org.springframework.boot.autoconfigure.cache.CacheProperties;
 import org.springframework.boot.autoconfigure.cache.CacheType;
@@ -31,22 +28,19 @@ public class MyConfiguration {
 
 	public static final Duration CACHE_B_TTL = Duration.ofSeconds(6);
 
-	private Logger log = LoggerFactory.getLogger(MyConfiguration.class);
+	private final Logger log = LoggerFactory.getLogger(MyConfiguration.class);
 
-	@Autowired
-	private CacheProperties cacheProperties;
-
-	@PostConstruct
-	public void init() {
+	MyConfiguration(CacheProperties cacheProperties) {
 		if (CacheType.NONE.equals(cacheProperties.getType())) {
 			log.warn("Caching is disabled");
 		} else {
 			log.info("Caching is enabled");
 		}
+
 	}
 
 	@Bean
-	public CacheManagerCustomizer<CaffeineCacheManager> caffeineCacheManagerCustomizer() {
+	CacheManagerCustomizer<CaffeineCacheManager> caffeineCacheManagerCustomizer() {
 		return cacheManager -> {
 			log.info("Registering caches");
 			cacheManager.registerCustomCache(CACHE_A_NAME, Caffeine.newBuilder().expireAfterWrite(CACHE_A_TTL).build());

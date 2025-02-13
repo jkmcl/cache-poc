@@ -21,7 +21,7 @@ class MyServiceTests {
 	@Autowired
 	private MyService svc;
 
-	void testMethod(Function<String, String> method, IntSupplier methodCallCount, Duration cacheTtl) throws Exception {
+	void testMethod(Function<String, String> method, IntSupplier methodCallCount, Duration cacheTtl) {
 		method.apply(KEY1);
 		assertEquals(1, methodCallCount.getAsInt());
 		method.apply(KEY1);
@@ -47,12 +47,12 @@ class MyServiceTests {
 	}
 
 	@Test
-	void testMethodA() throws Exception {
+	void testMethodA() {
 		testMethod(svc::methodA, svc::getMethodACallCount, MyConfiguration.CACHE_A_TTL);
 	}
 
 	@Test
-	void testMethodB() throws Exception {
+	void testMethodB() {
 		testMethod(svc::methodB, svc::getMethodBCallCount, MyConfiguration.CACHE_B_TTL);
 	}
 

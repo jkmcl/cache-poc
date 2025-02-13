@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class MyService {
 
-	private Logger log = LoggerFactory.getLogger(MyService.class);
+	private final Logger logger = LoggerFactory.getLogger(MyService.class);
 
 	private int methodACallCount = 0;
 
@@ -27,14 +27,14 @@ public class MyService {
 	@Cacheable(MyConfiguration.CACHE_A_NAME)
 	public String methodA(String key) {
 		++methodACallCount;
-		log.info("methodA called");
+		logger.info("methodA called");
 		return LocalDateTime.now().toString();
 	}
 
 	@Cacheable(MyConfiguration.CACHE_B_NAME)
 	public String methodB(String key) {
 		++methodBCallCount;
-		log.info("methodB called");
+		logger.info("methodB called");
 		return LocalDateTime.now().toString();
 	}
 
